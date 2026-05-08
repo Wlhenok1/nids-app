@@ -4,23 +4,36 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import pickle
 import os
+import traceback
 
 app = Flask(__name__)
 
 # ── Load all saved model files ────────────────────────────────────
-with open('model.pkl', 'rb') as f:
-    model = pickle.load(f)
+try:
+    with open('model.pkl', 'rb') as f:
+        model = pickle.load(f)
+    print("✅ model.pkl loaded")
 
-with open('encoders.pkl', 'rb') as f:
-    encoders = pickle.load(f)
+    with open('encoders.pkl', 'rb') as f:
+        encoders = pickle.load(f)
+    print("✅ encoders.pkl loaded")
 
-with open('columns.pkl', 'rb') as f:
-    feature_columns = pickle.load(f)
+    with open('columns.pkl', 'rb') as f:
+        feature_columns = pickle.load(f)
+    print("✅ columns.pkl loaded")
 
-with open('scaler.pkl', 'rb') as f:
-    scaler = pickle.load(f)
+    with open('scaler.pkl', 'rb') as f:
+        scaler = pickle.load(f)
+    print("✅ scaler.pkl loaded")
 
-# ── Column names (same as train_model.py) ────────────────────────
+except Exception as e:
+    print(f"❌ ERROR loading model files: {e}")
+    model = None
+    encoders = None
+    feature_columns = None
+    scaler = None
+
+# ── Column names ──────────────────────────────────────────────────
 col_names = [
     "duration","protocol_type","service","flag","src_bytes","dst_bytes",
     "land","wrong_fragment","urgent","hot","num_failed_logins","logged_in",
@@ -39,9 +52,24 @@ col_names = [
 def home():
     return render_template('index.html')
 
+# ── Health check — visit /status to see if model loaded ──────────
+@app.route('/status')
+def status():
+    return jsonify({
+        'model'    : model is not None,
+        'encoders' : encoders is not None,
+        'columns'  : feature_columns is not None,
+        'scaler'   : scaler is not None,
+        'files_present': os.listdir('.')
+    })
+
 # ── Predict route ─────────────────────────────────────────────────
 @app.route('/predict', methods=['POST'])
 def predict():
+    # Check model loaded
+    if model is None:
+        return jsonify({'error': 'Model files not found on server. Check /status for details.'})
+
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
 
@@ -98,7 +126,7 @@ def predict():
             correct  = sum(p == t for p, t in zip(predictions, true_labels))
             accuracy = round((correct / total) * 100, 2)
 
-        # Get first 500 predictions for the table display
+        # Get first 500 predictions for the table
         details = []
         for i, pred in enumerate(predictions[:500]):
             row = {
@@ -120,7 +148,8 @@ def predict():
         })
 
     except Exception as e:
-        return jsonify({'error': f'Error processing file: {str(e)}'})
+        # Return exact error message so we can debug
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()})
 
 
 # ── Run the app ───────────────────────────────────────────────────
