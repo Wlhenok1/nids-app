@@ -109,7 +109,12 @@ def predict():
         # ── STEP 5: Align columns with training data ──────────────
         df = df.reindex(columns=feature_columns, fill_value=0)
 
-        # ── STEP 6: Scale the data (required for KNN) ─────────────
+        # ── STEP 6: Scale the data ─────────────────────────────────
+        # Only scale if scaler exists (KNN needs it, Random Forest doesn't)
+        if scaler is not None:
+            df_scaled = scaler.transform(df)
+        else:
+            df_scaled = df.values
         df_scaled = scaler.transform(df)
 
         # ── STEP 7: Make predictions ──────────────────────────────
