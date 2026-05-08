@@ -24,14 +24,14 @@ try:
 
     with open('scaler.pkl', 'rb') as f:
         scaler = pickle.load(f)
-    print("✅ scaler.pkl loaded")
+    print(f"✅ scaler.pkl loaded (value: {scaler})")
 
 except Exception as e:
     print(f"❌ ERROR loading model files: {e}")
-    model = None
-    encoders = None
+    model          = None
+    encoders       = None
     feature_columns = None
-    scaler = None
+    scaler         = None
 
 # ── Column names ──────────────────────────────────────────────────
 col_names = [
@@ -52,23 +52,23 @@ col_names = [
 def home():
     return render_template('index.html')
 
-# ── Health check — visit /status to see if model loaded ──────────
+# ── Status check ──────────────────────────────────────────────────
 @app.route('/status')
 def status():
     return jsonify({
-        'model'    : model is not None,
-        'encoders' : encoders is not None,
-        'columns'  : feature_columns is not None,
-        'scaler'   : scaler is not None,
-        'files_present': os.listdir('.')
+        'model'         : model is not None,
+        'encoders'      : encoders is not None,
+        'columns'       : feature_columns is not None,
+        'scaler'        : scaler is not None,
+        'files_present' : os.listdir('.')
     })
 
 # ── Predict route ─────────────────────────────────────────────────
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Check model loaded
+    # Check model is loaded
     if model is None:
-        return jsonify({'error': 'Model files not found on server. Check /status for details.'})
+        return jsonify({'error': 'Model files not found on server.'})
 
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
@@ -109,16 +109,16 @@ def predict():
         # ── STEP 5: Align columns with training data ──────────────
         df = df.reindex(columns=feature_columns, fill_value=0)
 
-        # ── STEP 6: Scale the data ─────────────────────────────────
-        # Only scale if scaler exists (KNN needs it, Random Forest doesn't)
+        # ── STEP 6: Scale only if scaler exists ───────────────────
+        # Random Forest does NOT need scaling
+        # KNN DOES need scaling
         if scaler is not None:
-            df_scaled = scaler.transform(df)
+            df_ready = scaler.transform(df)
         else:
-            df_scaled = df.values
-        df_scaled = scaler.transform(df)
+            df_ready = df.values
 
         # ── STEP 7: Make predictions ──────────────────────────────
-        predictions = model.predict(df_scaled)
+        predictions = model.predict(df_ready)
 
         # ── STEP 8: Build results ─────────────────────────────────
         total  = len(predictions)
@@ -153,8 +153,10 @@ def predict():
         })
 
     except Exception as e:
-        # Return exact error message so we can debug
-        return jsonify({'error': str(e), 'trace': traceback.format_exc()})
+        return jsonify({
+            'error' : str(e),
+            'trace' : traceback.format_exc()
+        })
 
 
 # ── Run the app ───────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-# train_model.py — Using Random Forest (memory efficient)
+# train_model.py — Using Random Forest
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score
 import pickle
 
+# ── STEP 1: Load the dataset ──────────────────────────────────────
 print("Loading data...")
 
 col_names = [
@@ -25,6 +26,9 @@ col_names = [
 df = pd.read_csv('KDDTrain+.csv', header=0, names=col_names)
 df = df.drop('difficulty', axis=1)
 
+print(f"Dataset loaded: {len(df)} rows")
+
+# ── STEP 2: Fix the labels ────────────────────────────────────────
 attack_types = [
     'neptune', 'satan', 'ipsweep', 'portsweep', 'smurf', 'nmap', 'back',
     'teardrop', 'warezclient', 'pod', 'guess_passwd', 'buffer_overflow',
@@ -36,10 +40,10 @@ df['label'] = df['label'].apply(
     lambda x: 'attack' if str(x).strip().lower() in attack_types else 'normal'
 )
 
-print("Label distribution:")
+print("\nLabel distribution:")
 print(df['label'].value_counts())
 
-# Encode text columns
+# ── STEP 3: Convert text columns to numbers ───────────────────────
 label_encoders = {}
 for column in df.select_dtypes(include=['object']).columns:
     if column != 'label':
@@ -47,38 +51,54 @@ for column in df.select_dtypes(include=['object']).columns:
         df[column] = le.fit_transform(df[column].astype(str))
         label_encoders[column] = le
 
+# ── STEP 4: Split into features and labels ────────────────────────
 X = df.drop('label', axis=1)
 y = df['label']
+
+print(f"\nFinal check before training:")
+print(f"  Normal : {sum(y == 'normal')}")
+print(f"  Attack : {sum(y == 'attack')}")
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-print("Training Random Forest...")
-# Use fewer trees to save memory on Render
+print(f"\nTraining samples : {len(X_train)}")
+print(f"Testing samples  : {len(X_test)}")
+
+# ── STEP 5: Train Random Forest ───────────────────────────────────
+print("\nTraining Random Forest model...")
 model = RandomForestClassifier(
-    n_estimators=50,   # reduced from 100 to save memory
-    max_depth=20,      # limit depth to save memory
+    n_estimators=50,  # 50 trees — good balance of accuracy and memory
+    max_depth=20,     # limit depth to save memory
     random_state=42,
-    n_jobs=1           # use 1 core only on free plan
+    n_jobs=1          # use 1 core — safer for free hosting
 )
 model.fit(X_train, y_train)
 
+# ── STEP 6: Test accuracy ─────────────────────────────────────────
 y_pred = model.predict(X_test)
 print(f"\n✅ Accuracy: {accuracy_score(y_test, y_pred) * 100:.2f}%")
+print("\nDetailed Report:")
 print(classification_report(y_test, y_pred))
 
+# ── STEP 7: Save everything ───────────────────────────────────────
 with open('model.pkl', 'wb') as f:
     pickle.dump(model, f)
+
 with open('encoders.pkl', 'wb') as f:
     pickle.dump(label_encoders, f)
+
 with open('columns.pkl', 'wb') as f:
     pickle.dump(list(X.columns), f)
 
-# No scaler needed for Random Forest
-import numpy as np
-scaler = None
+# Save scaler as None — Random Forest does not need scaling
 with open('scaler.pkl', 'wb') as f:
-    pickle.dump(scaler, f)
+    pickle.dump(None, f)
 
-print("\n✅ Model saved! Now run: python app.py")
+print("\n✅ All files saved!")
+print("   model.pkl")
+print("   encoders.pkl")
+print("   columns.pkl")
+print("   scaler.pkl (None — not needed for Random Forest)")
+print("\nNow run: python app.py")
