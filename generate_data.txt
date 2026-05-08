@@ -1,0 +1,70 @@
+import pandas as pd
+import random
+
+col_names = [
+    "duration","protocol_type","service","flag","src_bytes","dst_bytes",
+    "land","wrong_fragment","urgent","hot","num_failed_logins","logged_in",
+    "num_compromised","root_shell","su_attempted","num_root","num_file_creations",
+    "num_shells","num_access_files","num_outbound_cmds","is_host_login",
+    "is_guest_login","count","srv_count","serror_rate","srv_serror_rate",
+    "rerror_rate","srv_rerror_rate","same_srv_rate","diff_srv_rate",
+    "srv_diff_host_rate","dst_host_count","dst_host_srv_count",
+    "dst_host_same_srv_rate","dst_host_diff_srv_rate","dst_host_same_src_port_rate",
+    "dst_host_srv_diff_host_rate","dst_host_serror_rate","dst_host_srv_serror_rate",
+    "dst_host_rerror_rate","dst_host_srv_rerror_rate"
+]
+
+protocols = ['tcp', 'udp', 'icmp']
+services  = ['http', 'ftp', 'smtp', 'ssh', 'dns', 'ftp_data', 'other']
+flags     = ['SF', 'S0', 'REJ', 'RSTO', 'SH']
+
+rows = []
+for i in range(500):
+    row = {
+        "duration"                    : random.randint(0, 100),
+        "protocol_type"               : random.choice(protocols),
+        "service"                     : random.choice(services),
+        "flag"                        : random.choice(flags),
+        "src_bytes"                   : random.randint(0, 50000),
+        "dst_bytes"                   : random.randint(0, 50000),
+        "land"                        : random.randint(0, 1),
+        "wrong_fragment"              : random.randint(0, 3),
+        "urgent"                      : 0,
+        "hot"                         : random.randint(0, 10),
+        "num_failed_logins"           : random.randint(0, 5),
+        "logged_in"                   : random.randint(0, 1),
+        "num_compromised"             : random.randint(0, 5),
+        "root_shell"                  : random.randint(0, 1),
+        "su_attempted"                : random.randint(0, 1),
+        "num_root"                    : random.randint(0, 5),
+        "num_file_creations"          : random.randint(0, 5),
+        "num_shells"                  : random.randint(0, 2),
+        "num_access_files"            : random.randint(0, 5),
+        "num_outbound_cmds"           : 0,
+        "is_host_login"               : 0,
+        "is_guest_login"              : random.randint(0, 1),
+        "count"                       : random.randint(1, 512),
+        "srv_count"                   : random.randint(1, 512),
+        "serror_rate"                 : round(random.uniform(0, 1), 2),
+        "srv_serror_rate"             : round(random.uniform(0, 1), 2),
+        "rerror_rate"                 : round(random.uniform(0, 1), 2),
+        "srv_rerror_rate"             : round(random.uniform(0, 1), 2),
+        "same_srv_rate"               : round(random.uniform(0, 1), 2),
+        "diff_srv_rate"               : round(random.uniform(0, 1), 2),
+        "srv_diff_host_rate"          : round(random.uniform(0, 1), 2),
+        "dst_host_count"              : random.randint(1, 255),
+        "dst_host_srv_count"          : random.randint(1, 255),
+        "dst_host_same_srv_rate"      : round(random.uniform(0, 1), 2),
+        "dst_host_diff_srv_rate"      : round(random.uniform(0, 1), 2),
+        "dst_host_same_src_port_rate" : round(random.uniform(0, 1), 2),
+        "dst_host_srv_diff_host_rate" : round(random.uniform(0, 1), 2),
+        "dst_host_serror_rate"        : round(random.uniform(0, 1), 2),
+        "dst_host_srv_serror_rate"    : round(random.uniform(0, 1), 2),
+        "dst_host_rerror_rate"        : round(random.uniform(0, 1), 2),
+        "dst_host_srv_rerror_rate"    : round(random.uniform(0, 1), 2),
+    }
+    rows.append(row)
+
+df = pd.DataFrame(rows, columns=col_names)
+df.to_csv('demo_data.csv', index=False)
+print("✅ Generated 500 rows → demo_data.csv")
